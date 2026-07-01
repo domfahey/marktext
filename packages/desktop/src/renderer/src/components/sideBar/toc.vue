@@ -15,7 +15,11 @@
       :indent="10"
       :icon="ArrowRight"
       @node-click="handleClick"
-    />
+    >
+      <template #default="{ data }">
+        <span class="el-tree-node__label">{{ stripImageTags(data.label) }}</span>
+      </template>
+    </el-tree>
   </div>
 </template>
 
@@ -39,6 +43,20 @@ const defaultProps = {
 
 const { toc } = storeToRefs(editorStore)
 const { wordWrapInToc } = storeToRefs(preferencesStore)
+
+// TOC labels come from the raw heading text, so an image at the start of a
+// heading (`# ![alt](url) Title`) would otherwise show its markdown in the
+// content table (#3516). Render markdown images as their alt text and drop raw
+// <img> tags; display-only, so heading slugs/anchors are untouched.
+const stripImageTags = (label: unknown): string => {
+  if (typeof label !== 'string') return ''
+  return label
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\[[^\]]*\]/g, '$1')
+    .replace(/<img\b[^>]*>/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 const handleClick = (data: { slug?: unknown }): void => {
   // editor.vue builds a CSS selector with `#${slug}` — bail out if the
